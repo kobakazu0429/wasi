@@ -32,7 +32,7 @@ int main(void) {
 
   ret = fstat(fd, &st);
   assert(ret == 0);
-  printf("---%d\n",st.st_size);
+  printf("---%lld\n",st.st_size);
   assert(st.st_size == SIZE);
 
   ret = close(fd);
