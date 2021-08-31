@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebAssembly demo with File System Access</title>
+    <meta
+      name="description"
+      content="A demo showing WebAssembly + WASI apps running on the Web with access to a real filesystem."
+    />
+    <link rel="preload" href="./coreutils.async.wasm" as="fetch" crossorigin />
+    <style>
+      html,
+      body,
+      .xterm {
+        height: 100%;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="./dist/browser.js"></script>
+  </body>
+</html>
