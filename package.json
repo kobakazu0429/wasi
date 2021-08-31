@@ -1,7 +1,7 @@
 {
-  "name": "wasi-fs-access",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@kobakazu0429/wasi",
+  "version": "0.0.1",
+  "private": false,
   "scripts": {
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "build": "tsc -p .",
@@ -11,16 +11,25 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GoogleChromeLabs/wasi-fs-access.git"
+    "url": "git+https://github.com/kobakazu0429/wasi.git"
   },
   "keywords": [],
   "author": "Ingvar Stepanyan <rreverser@google.com>",
+  "contributors": [
+    {
+      "name": "Ingvar Stepanyan",
+      "email": "rreverser@google.com"
+    },
+    {
+      "name": "kobakazu0429",
+      "email": "kobakazu10@gmail.com"
+    }
+  ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/GoogleChromeLabs/wasi-fs-access/issues"
+    "url": "https://github.com/kobakazu0429/wasi/issues"
   },
-  "homepage": "https://github.com/GoogleChromeLabs/wasi-fs-access#readme",
-  "description": "",
+  "homepage": "https://github.com/kobakazu0429/wasi#readme",
   "dependencies": {
     "asyncify-wasm": "^1.1.1"
   },
