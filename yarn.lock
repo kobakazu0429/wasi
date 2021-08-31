@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@kobakazu0429/xterm-local-echo@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@kobakazu0429/xterm-local-echo/-/xterm-local-echo-0.0.2.tgz#bfd34575f97f4da47696b9ea4543f926570ec895"
+  integrity sha512-GDYZ7ZiCaIKvuPkk3dhWs7t0mlxXwQKvMsfUVHl+wB2KLiE/UQQhVrTJCBP3jg2cDvxUCdmIx8Z25UYw25zCLw==
+
 "@types/wicg-file-system-access@^2020.9.1":
   version "2020.9.2"
   resolved "https://registry.yarnpkg.com/@types/wicg-file-system-access/-/wicg-file-system-access-2020.9.2.tgz#6433e5a1d7cfdc58558e15f69276e4f0034088c6"
@@ -11,17 +16,6 @@ asyncify-wasm@^1.1.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/asyncify-wasm/-/asyncify-wasm-1.2.1.tgz#a15c0480e858619a4f971e44e6fc05c49015d9e8"
   integrity sha512-ZS7tZ8H8EVbUxAZnkKHvMt9UkYoALue2jwrVl7cnLByjq+1MRrbq7rL5TS+EHQduwkfXD/cNZNa+I0ZyLEBBRQ==
-
-"local-echo@github:RReverser/local-echo":
-  version "0.2.0"
-  resolved "https://codeload.github.com/RReverser/local-echo/tar.gz/e09efbba529cfca6de38339697eaa22c49cc627b"
-  dependencies:
-    shell-quote "^1.6.1"
-
-shell-quote@^1.6.1:
-  version "1.7.2"
-  resolved "https://registry.yarnpkg.com/shell-quote/-/shell-quote-1.7.2.tgz#67a7d02c76c9da24f99d20808fcaded0e0e04be2"
-  integrity sha512-mRz/m/JVscCrkMyPqHc/bczi3OQHkLTqXHEFu0zDhK/qfv3UcOA4SVmRCLmos4bhjr9ekVQubj/R7waKapmiQg==
 
 typescript@^4.0.3:
   version "4.4.2"
