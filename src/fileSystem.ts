@@ -24,14 +24,6 @@ class OpenDirectory {
 
   isFile!: false;
 
-  asFile(): never {
-    throw new SystemError(E.ISDIR);
-  }
-
-  asDir() {
-    return this;
-  }
-
   private _currentIter:
     | {
         pos: number;
@@ -39,6 +31,14 @@ class OpenDirectory {
         iter: AsyncIterableIterator<FileSystemHandle>;
       }
     | undefined = undefined;
+
+  asFile(): never {
+    throw new SystemError(E.ISDIR);
+  }
+
+  asDir() {
+    return this;
+  }
 
   getEntries(start = 0): AsyncIterableIterator<FileSystemHandle> & {
     revert: (handle: FileSystemHandle) => void;
@@ -103,30 +103,6 @@ class OpenDirectory {
       [Symbol.asyncIterator]() {
         return this;
       },
-    };
-  }
-
-  private async _resolve(path: string) {
-    console.debug("[_resolve]");
-    const parts = path ? path.split("/") : [];
-    const resolvedParts = [];
-    for (const item of parts) {
-      if (item === "..") {
-        if (resolvedParts.pop() === undefined) {
-          throw new SystemError(E.NOTCAPABLE);
-        }
-      } else if (item !== ".") {
-        resolvedParts.push(item);
-      }
-    }
-    const name = resolvedParts.pop();
-    let parent = this._handle;
-    for (const item of resolvedParts) {
-      parent = await parent.getDirectoryHandle(item);
-    }
-    return {
-      parent,
-      name,
     };
   }
 
@@ -235,7 +211,32 @@ class OpenDirectory {
     await parent.removeEntry(name);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   close() {}
+
+  private async _resolve(path: string) {
+    console.debug("[_resolve]");
+    const parts = path ? path.split("/") : [];
+    const resolvedParts = [];
+    for (const item of parts) {
+      if (item === "..") {
+        if (resolvedParts.pop() === undefined) {
+          throw new SystemError(E.NOTCAPABLE);
+        }
+      } else if (item !== ".") {
+        resolvedParts.push(item);
+      }
+    }
+    const name = resolvedParts.pop();
+    let parent = this._handle;
+    for (const item of resolvedParts) {
+      parent = await parent.getDirectoryHandle(item);
+    }
+    return {
+      parent,
+      name,
+    };
+  }
 }
 
 OpenDirectory.prototype.isFile = false;
@@ -256,15 +257,6 @@ class OpenFile {
     // TODO: do we really have to?
     await this.flush();
     return this._handle.getFile();
-  }
-
-  private async _getWriter() {
-    return (
-      this._writer ||
-      (this._writer = await this._handle.createWritable({
-        keepExistingData: true,
-      }))
-    );
   }
 
   async setSize(size: number) {
@@ -307,6 +299,15 @@ class OpenFile {
   close() {
     return this.flush();
   }
+
+  private async _getWriter() {
+    return (
+      this._writer ||
+      (this._writer = await this._handle.createWritable({
+        keepExistingData: true,
+      }))
+    );
+  }
 }
 
 OpenFile.prototype.isFile = true;
@@ -320,10 +321,6 @@ export const enum FileOrDir {
 export const FIRST_PREOPEN_FD = 3 as fd_t;
 
 export class OpenFiles {
-  private _files = new Map<fd_t, OpenFile | OpenDirectory>();
-  private _nextFd = FIRST_PREOPEN_FD;
-  private readonly _firstNonPreopenFd: fd_t;
-
   constructor(preOpen: Record<string, FileSystemDirectoryHandle>) {
     console.debug("[preOpen]", preOpen);
     for (const path in preOpen) {
@@ -332,6 +329,10 @@ export class OpenFiles {
     this._firstNonPreopenFd = this._nextFd;
   }
 
+  private _files = new Map<fd_t, OpenFile | OpenDirectory>();
+  private _nextFd = FIRST_PREOPEN_FD;
+  private readonly _firstNonPreopenFd: fd_t;
+
   getPreOpen(fd: fd_t): OpenDirectory {
     console.debug("[getpreopen]");
     if (fd >= FIRST_PREOPEN_FD && fd < this._firstNonPreopenFd) {
@@ -339,17 +340,6 @@ export class OpenFiles {
     } else {
       throw new SystemError(E.BADF, true);
     }
-  }
-
-  private _add(path: string, handle: Handle) {
-    console.debug("[_add]", path);
-    this._files.set(
-      this._nextFd,
-      handle.kind === "file"
-        ? new OpenFile(path, handle)
-        : new OpenDirectory(path, handle)
-    );
-    return this._nextFd++ as fd_t;
   }
 
   async open(preOpen: OpenDirectory, path: string, openFlags?: OpenFlags) {
@@ -369,13 +359,6 @@ export class OpenFiles {
     return openFile;
   }
 
-  private _take(fd: fd_t) {
-    console.debug("[_take]");
-    const handle = this.get(fd);
-    this._files.delete(fd);
-    return handle;
-  }
-
   async renumber(from: fd_t, to: fd_t) {
     console.debug("[renumber]");
     await this.close(to);
@@ -387,7 +370,26 @@ export class OpenFiles {
     await this._take(fd).close();
   }
 
+  private _add(path: string, handle: Handle) {
+    console.debug("[_add]", path);
+    this._files.set(
+      this._nextFd,
+      handle.kind === "file"
+        ? new OpenFile(path, handle)
+        : new OpenDirectory(path, handle)
+    );
+    return this._nextFd++ as fd_t;
+  }
+
+  private _take(fd: fd_t) {
+    console.debug("[_take]");
+    const handle = this.get(fd);
+    this._files.delete(fd);
+    return handle;
+  }
+
   // Translation of the algorithm from __wasilibc_find_relpath.
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   findRelPath(path: string) {
     console.debug("[findRelPath]");
     /// Are the `prefix_len` bytes pointed to by `prefix` a prefix of `path`?

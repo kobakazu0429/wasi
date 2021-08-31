@@ -268,9 +268,6 @@ function unimplemented(msg?: string) {
 }
 
 class StringCollection {
-  private readonly _offsets: Uint32Array;
-  private readonly _buffer: string;
-
   constructor(strings: string[]) {
     this._offsets = new Uint32Array(strings.length);
     this._buffer = "";
@@ -280,6 +277,9 @@ class StringCollection {
       this._buffer += `${s}\0`;
     }
   }
+
+  private readonly _offsets: Uint32Array;
+  private readonly _buffer: string;
 
   sizes_get(buf: ArrayBuffer, countPtr: ptr<number>, sizePtr: ptr<number>) {
     size_t.set(buf, countPtr, this._offsets.length);
@@ -295,17 +295,6 @@ class StringCollection {
 }
 
 export default class Bindings {
-  private _openFiles: OpenFiles;
-
-  private _args: StringCollection;
-  private _env: StringCollection;
-
-  private _stdIn: In;
-  private _stdOut: Out;
-  private _stdErr: Out;
-
-  private _abortSignal: AbortSignal | undefined;
-
   constructor({
     openFiles,
     stdin = { read: () => new Uint8Array() },
@@ -335,6 +324,36 @@ export default class Bindings {
   }
 
   memory: WebAssembly.Memory | undefined;
+
+  private _openFiles: OpenFiles;
+
+  private _args: StringCollection;
+  private _env: StringCollection;
+
+  private _stdIn: In;
+  private _stdOut: Out;
+  private _stdErr: Out;
+
+  private _abortSignal: AbortSignal | undefined;
+
+  public async run(module: WebAssembly.Module): Promise<number> {
+    const {
+      exports: { _start, memory },
+    } = await instantiate(module, {
+      wasi_snapshot_preview1: this.getWasiImports(),
+    });
+    this.memory = memory;
+    try {
+      await _start();
+      return 0;
+    } catch (err: any) {
+      console.error(err);
+      if (err instanceof ExitStatus) {
+        return err.statusCode;
+      }
+      throw err;
+    }
+  }
 
   private _checkAbort() {
     if (this._abortSignal?.aborted) {
@@ -379,7 +398,7 @@ export default class Bindings {
     });
   }
 
-  getWasiImports() {
+  private getWasiImports() {
     const bindings: Record<string, (...args: any[]) => void | Promise<void>> = {
       fd_prestat_get: (fd: fd_t, prestatPtr: ptr<prestat_t>) => {
         console.debug("[fd_prestat_get]");
@@ -432,12 +451,12 @@ export default class Bindings {
       },
       path_open: async (
         dirFd: fd_t,
-        dirFlags: number,
+        _dirFlags: number,
         pathPtr: ptr<string>,
         pathLen: number,
         oFlags: OpenFlags,
-        fsRightsBase: bigint,
-        fsRightsInheriting: bigint,
+        _fsRightsBase: bigint,
+        _fsRightsInheriting: bigint,
         fsFlags: FdFlags,
         fdPtr: ptr<fd_t>
       ) => {
@@ -461,7 +480,7 @@ export default class Bindings {
           )
         );
       },
-      fd_fdstat_set_flags: (fd: fd_t, flags: FdFlags) => {
+      fd_fdstat_set_flags: (_fd: fd_t, _flags: FdFlags) => {
         return unimplemented("fd_fdstat_set_flags");
       },
       fd_close: (fd: fd_t) => {
@@ -537,22 +556,25 @@ export default class Bindings {
         pathLen: number
       ) => {
         console.debug("[path_create_directory]");
-        return this._openFiles
-          .getPreOpen(dirFd)
-          .getFileOrDir(
-            string.get(this._getBuffer(), pathPtr, pathLen),
-            FileOrDir.Dir,
-            OpenFlags.Create | OpenFlags.Directory | OpenFlags.Exclusive
-          )
-          .then(() => {});
+        return (
+          this._openFiles
+            .getPreOpen(dirFd)
+            .getFileOrDir(
+              string.get(this._getBuffer(), pathPtr, pathLen),
+              FileOrDir.Dir,
+              OpenFlags.Create | OpenFlags.Directory | OpenFlags.Exclusive
+            )
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            .then(() => {})
+        );
       },
       path_rename: async (
-        oldDirFd: fd_t,
-        oldPathPtr: ptr<string>,
-        oldPathLen: number,
-        newDirFd: fd_t,
-        newPathPtr: ptr<string>,
-        newPathLen: number
+        _oldDirFd: fd_t,
+        _oldPathPtr: ptr<string>,
+        _oldPathLen: number,
+        _newDirFd: fd_t,
+        _newPathPtr: ptr<string>,
+        _newPathLen: number
       ) => {
         console.debug("[path_rename]");
         return unimplemented("path_rename");
@@ -607,16 +629,16 @@ export default class Bindings {
         size_t.set(this._getBuffer(), bufUsedPtr, bufPtr - initialBufPtr);
       },
       path_readlink: (
-        dirFd: fd_t,
-        pathPtr: number,
-        pathLen: number,
-        bufPtr: number,
-        bufLen: number,
-        bufUsedPtr: number
+        _dirFd: fd_t,
+        _pathPtr: number,
+        _pathLen: number,
+        _bufPtr: number,
+        _bufLen: number,
+        _bufUsedPtr: number
       ) => unimplemented("path_readlink"),
       path_filestat_get: async (
         dirFd: fd_t,
-        flags: any,
+        _flags: any,
         pathPtr: ptr<string>,
         pathLen: number,
         filestatPtr: ptr<filestat_t>
@@ -755,13 +777,13 @@ export default class Bindings {
         size_t.set(this._getBuffer(), eventsNumPtr, eventsNum);
       },
       path_link: async (
-        oldDirFd: fd_t,
-        oldFlags: number,
-        oldPathPtr: ptr<string>,
-        oldPathLen: number,
-        newFd: fd_t,
-        newPathPtr: ptr<string>,
-        newPathLen: number
+        _oldDirFd: fd_t,
+        _oldFlags: number,
+        _oldPathPtr: ptr<string>,
+        _oldPathLen: number,
+        _newFd: fd_t,
+        _newPathPtr: ptr<string>,
+        _newPathLen: number
       ) => {
         console.debug("[path_link]");
         // console.debug(oldDirFd, oldFlags, oldPathPtr, oldPathLen);
@@ -817,12 +839,16 @@ export default class Bindings {
 
         return this._openFiles.renumber(from, to);
       },
-      path_symlink: (oldPath: ptr<string>, fd: fd_t, newPath: ptr<string>) => {
+      path_symlink: (
+        _oldPath: ptr<string>,
+        _fd: fd_t,
+        _newPath: ptr<string>
+      ) => {
         unimplemented("path_symlink");
       },
       clock_time_get: (
         id: ClockId,
-        precision: bigint,
+        _precision: bigint,
         resultPtr: ptr<bigint>
       ) => {
         const origin = id === ClockId.Realtime ? Date : performance;
@@ -832,7 +858,7 @@ export default class Bindings {
           BigInt(Math.round(origin.now() * 1_000_000))
         );
       },
-      clock_res_get: (id: ClockId, resultPtr: ptr<bigint>) => {
+      clock_res_get: (_id: ClockId, resultPtr: ptr<bigint>) => {
         timestamp_t.set(this._getBuffer(), resultPtr, /* 1ms */ 1_000_000n);
       },
     };
@@ -855,25 +881,6 @@ export default class Bindings {
         };
       },
     });
-  }
-
-  async run(module: WebAssembly.Module): Promise<number> {
-    const {
-      exports: { _start, memory },
-    } = await instantiate(module, {
-      wasi_snapshot_preview1: this.getWasiImports(),
-    });
-    this.memory = memory;
-    try {
-      await _start();
-      return 0;
-    } catch (err: any) {
-      console.error(err);
-      if (err instanceof ExitStatus) {
-        return err.statusCode;
-      }
-      throw err;
-    }
   }
 
   private async _forEachIoVec(
