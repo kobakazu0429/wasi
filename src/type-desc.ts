@@ -41,8 +41,8 @@ const getDataView = (() => {
 })();
 
 function std<T = number>(name: string, size: number): TypeDesc<T> {
-  let get = (DataView.prototype as any)[`get${name}`];
-  let set = (DataView.prototype as any)[`set${name}`];
+  const get = (DataView.prototype as any)[`get${name}`];
+  const set = (DataView.prototype as any)[`set${name}`];
 
   return {
     size,
@@ -52,7 +52,7 @@ function std<T = number>(name: string, size: number): TypeDesc<T> {
     },
     set(buf, ptr, value) {
       return set.call(getDataView(buf), ptr, value, true);
-    }
+    },
   };
 }
 
@@ -70,19 +70,19 @@ export const string = (() => {
       value: string,
       len: number = value.length
     ) {
-      let { read } = textEncoder.encodeInto(
+      const { read } = textEncoder.encodeInto(
         value,
         new Uint8Array(buf, ptr, len)
       );
       if (read! < value.length) {
         throw new Error(`Insufficient space.`);
       }
-    }
+    },
   };
 })();
 
 function alignTo(ptr: number, align: number): number {
-  let mismatch = ptr % align;
+  const mismatch = ptr % align;
   if (mismatch) {
     ptr += align - mismatch;
   }
@@ -97,9 +97,9 @@ export function struct<T extends Record<string, TypeDesc<any>>>(
   }
   let offset = 0;
   let structAlign = 0;
-  for (let name in desc) {
-    let type = desc[name];
-    let fieldAlign = type.align;
+  for (const name in desc) {
+    const type = desc[name];
+    const fieldAlign = type.align;
     structAlign = Math.max(structAlign, fieldAlign);
     offset = alignTo(offset, fieldAlign);
     const fieldOffset = offset;
@@ -109,7 +109,7 @@ export function struct<T extends Record<string, TypeDesc<any>>>(
       },
       set(this: Ctor, value) {
         type.set(this._buf, (this._ptr + fieldOffset) as ptr<any>, value);
-      }
+      },
     });
     offset += type.size;
   }
@@ -122,7 +122,7 @@ export function struct<T extends Record<string, TypeDesc<any>>>(
     },
     set(buf, ptr, value) {
       Object.assign(new Ctor(buf, ptr), value);
-    }
+    },
   };
 }
 
@@ -131,7 +131,7 @@ export function taggedUnion<
   T extends Record<E, TypeDesc<any>>
 >({
   tag: tagDesc,
-  data: dataDesc
+  data: dataDesc,
 }: {
   tag: TypeDesc<E>;
   data: T;
@@ -142,8 +142,8 @@ export function taggedUnion<
 > {
   let unionSize = 0;
   let unionAlign = 0;
-  for (let key in dataDesc) {
-    let { size, align } = dataDesc[key];
+  for (const key in dataDesc) {
+    const { size, align } = dataDesc[key];
     unionSize = Math.max(unionSize, size);
     unionAlign = Math.max(unionAlign, align);
   }
@@ -155,16 +155,16 @@ export function taggedUnion<
     size: totalSize,
     align: totalAlign,
     get(buf, ptr) {
-      let tag = tagDesc.get(buf, ptr as ptr<any>);
+      const tag = tagDesc.get(buf, ptr as ptr<any>);
       return {
         tag,
-        data: dataDesc[tag].get(buf, (ptr + unionOffset) as ptr<any>)
+        data: dataDesc[tag].get(buf, (ptr + unionOffset) as ptr<any>),
       };
     },
     set(buf, ptr, value) {
       tagDesc.set(buf, ptr as ptr<any>, value.tag);
       dataDesc[value.tag].set(buf, (ptr + unionOffset) as ptr<any>, value.data);
-    }
+    },
   };
 }
 
@@ -173,13 +173,13 @@ export function enumer<E extends number>(base: TypeDesc<number>): TypeDesc<E> {
   return base as TypeDesc<E>;
 }
 
-export const int8_t = std('Int8', 1);
-export const uint8_t = std('Uint8', 1);
-export const int16_t = std('Int16', 2);
-export const uint16_t = std('Uint16', 2);
-export const int32_t = std('Int32', 4);
-export const uint32_t = std('Uint32', 4);
-export const int64_t = std<bigint>('bigint64', 8);
-export const uint64_t = std<bigint>('BigUint64', 8);
+export const int8_t = std("Int8", 1);
+export const uint8_t = std("Uint8", 1);
+export const int16_t = std("Int16", 2);
+export const uint16_t = std("Uint16", 2);
+export const int32_t = std("Int32", 4);
+export const uint32_t = std("Uint32", 4);
+export const int64_t = std<bigint>("bigint64", 8);
+export const uint64_t = std<bigint>("BigUint64", 8);
 
 export const size_t = uint32_t;

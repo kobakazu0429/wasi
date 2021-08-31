@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { fd_t, OpenFlags, SystemError, E } from './bindings';
+import { fd_t, OpenFlags, SystemError, E } from "./bindings";
 
 export type Handle = FileSystemFileHandle | FileSystemDirectoryHandle;
 
@@ -43,19 +43,19 @@ class OpenDirectory {
   getEntries(start = 0): AsyncIterableIterator<FileSystemHandle> & {
     revert: (handle: FileSystemHandle) => void;
   } {
-    console.debug('[getEntries]');
+    console.debug("[getEntries]");
     if (this._currentIter?.pos !== start) {
       // We're at incorrect position and will have to skip [start] items.
       this._currentIter = {
         pos: 0,
         reverted: undefined,
-        iter: this._handle.values()
+        iter: this._handle.values(),
       };
     } else {
       // We are already at correct position, so zero this out.
       start = 0;
     }
-    let currentIter = this._currentIter;
+    const currentIter = this._currentIter;
     return {
       next: async () => {
         // This is a rare case when the caller tries to start reading directory
@@ -70,17 +70,17 @@ class OpenDirectory {
           await currentIter.iter.next();
         }
         // If there is a handle saved by a `revert(...)` call, take and return it.
-        let { reverted } = currentIter;
+        const { reverted } = currentIter;
         if (reverted) {
           currentIter.reverted = undefined;
           currentIter.pos++;
           return {
             value: reverted,
-            done: false
+            done: false,
           };
         }
         // Otherwise use the underlying iterator.
-        let res = await currentIter.iter.next();
+        const res = await currentIter.iter.next();
         if (!res.done) {
           currentIter.pos++;
         }
@@ -95,38 +95,38 @@ class OpenDirectory {
       // position.
       revert: (handle: FileSystemHandle) => {
         if (currentIter.reverted || currentIter.pos === 0) {
-          throw new Error('Cannot revert a handle in the current state.');
+          throw new Error("Cannot revert a handle in the current state.");
         }
         currentIter.pos--;
         currentIter.reverted = handle;
       },
       [Symbol.asyncIterator]() {
         return this;
-      }
+      },
     };
   }
 
   private async _resolve(path: string) {
-    console.debug('[_resolve]');
-    let parts = path ? path.split('/') : [];
-    let resolvedParts = [];
-    for (let item of parts) {
-      if (item === '..') {
+    console.debug("[_resolve]");
+    const parts = path ? path.split("/") : [];
+    const resolvedParts = [];
+    for (const item of parts) {
+      if (item === "..") {
         if (resolvedParts.pop() === undefined) {
           throw new SystemError(E.NOTCAPABLE);
         }
-      } else if (item !== '.') {
+      } else if (item !== ".") {
         resolvedParts.push(item);
       }
     }
-    let name = resolvedParts.pop();
+    const name = resolvedParts.pop();
     let parent = this._handle;
-    for (let item of resolvedParts) {
+    for (const item of resolvedParts) {
       parent = await parent.getDirectoryHandle(item);
     }
     return {
       parent,
-      name
+      name,
     };
   }
 
@@ -146,8 +146,8 @@ class OpenDirectory {
     openFlags?: OpenFlags
   ): Promise<Handle>;
   async getFileOrDir(path: string, mode: FileOrDir, openFlags: OpenFlags = 0) {
-    console.debug('[getFileOrDir]');
-    let { parent, name: maybeName } = await this._resolve(path);
+    console.debug("[getFileOrDir]");
+    const { parent, name: maybeName } = await this._resolve(path);
     // Handle case when we couldn't get a parent, only direct handle
     // (this means it's a preopened directory).
     if (maybeName === undefined) {
@@ -163,13 +163,13 @@ class OpenDirectory {
         throw new SystemError(E.ISDIR);
       }
     }
-    let name = maybeName;
+    const name = maybeName;
     async function openWithCreate(create: boolean) {
       if (mode & FileOrDir.File) {
         try {
           return await parent.getFileHandle(name, { create });
         } catch (err: any) {
-          if (err.name === 'TypeMismatchError') {
+          if (err.name === "TypeMismatchError") {
             if (!(mode & FileOrDir.Dir)) {
               console.warn(err);
               throw new SystemError(E.ISDIR);
@@ -182,7 +182,7 @@ class OpenDirectory {
       try {
         return await parent.getDirectoryHandle(name, { create });
       } catch (err: any) {
-        if (err.name === 'TypeMismatchError') {
+        if (err.name === "TypeMismatchError") {
           console.warn(err);
           throw new SystemError(E.NOTDIR);
         } else {
@@ -220,15 +220,15 @@ class OpenDirectory {
       if (handle.isDirectory) {
         throw new SystemError(E.ISDIR);
       }
-      let writable = await handle.createWritable({ keepExistingData: false });
+      const writable = await handle.createWritable({ keepExistingData: false });
       await writable.close();
     }
     return handle;
   }
 
   async delete(path: string) {
-    console.debug('[delete]');
-    let { parent, name } = await this._resolve(path);
+    console.debug("[delete]");
+    const { parent, name } = await this._resolve(path);
     if (!name) {
       throw new SystemError(E.ACCES);
     }
@@ -252,7 +252,7 @@ class OpenFile {
   private _writer: FileSystemWritableFileStream | undefined = undefined;
 
   async getFile() {
-    console.debug('[getfile]');
+    console.debug("[getfile]");
     // TODO: do we really have to?
     await this.flush();
     return this._handle.getFile();
@@ -262,35 +262,35 @@ class OpenFile {
     return (
       this._writer ||
       (this._writer = await this._handle.createWritable({
-        keepExistingData: true
+        keepExistingData: true,
       }))
     );
   }
 
   async setSize(size: number) {
-    console.debug('[setSize]');
-    let writer = await this._getWriter();
+    console.debug("[setSize]");
+    const writer = await this._getWriter();
     await writer.truncate(size);
   }
 
   async read(len: number) {
-    console.debug('[read]');
-    let file = await this.getFile();
-    let slice = file.slice(this.position, this.position + len);
-    let arrayBuffer = await slice.arrayBuffer();
+    console.debug("[read]");
+    const file = await this.getFile();
+    const slice = file.slice(this.position, this.position + len);
+    const arrayBuffer = await slice.arrayBuffer();
     this.position += arrayBuffer.byteLength;
     return new Uint8Array(arrayBuffer);
   }
 
   async write(data: Uint8Array) {
-    console.debug('[write]');
-    let writer = await this._getWriter();
-    await writer.write({ type: 'write', position: this.position, data });
+    console.debug("[write]");
+    const writer = await this._getWriter();
+    await writer.write({ type: "write", position: this.position, data });
     this.position += data.length;
   }
 
   async flush() {
-    console.debug('[flush]');
+    console.debug("[flush]");
     if (!this._writer) return;
     await this._writer.close();
     this._writer = undefined;
@@ -314,7 +314,7 @@ OpenFile.prototype.isFile = true;
 export const enum FileOrDir {
   File = 1, // 1 << 0
   Dir = 2, // 1 << 1
-  Any = 3 // File | Dir
+  Any = 3, // File | Dir
 }
 
 export const FIRST_PREOPEN_FD = 3 as fd_t;
@@ -325,15 +325,15 @@ export class OpenFiles {
   private readonly _firstNonPreopenFd: fd_t;
 
   constructor(preOpen: Record<string, FileSystemDirectoryHandle>) {
-    console.debug('[preOpen]', preOpen);
-    for (let path in preOpen) {
+    console.debug("[preOpen]", preOpen);
+    for (const path in preOpen) {
       this._add(path, preOpen[path]);
     }
     this._firstNonPreopenFd = this._nextFd;
   }
 
   getPreOpen(fd: fd_t): OpenDirectory {
-    console.debug('[getpreopen]');
+    console.debug("[getpreopen]");
     if (fd >= FIRST_PREOPEN_FD && fd < this._firstNonPreopenFd) {
       return this.get(fd) as OpenDirectory;
     } else {
@@ -342,10 +342,10 @@ export class OpenFiles {
   }
 
   private _add(path: string, handle: Handle) {
-    console.debug('[_add]', path);
+    console.debug("[_add]", path);
     this._files.set(
       this._nextFd,
-      handle.kind === 'file'
+      handle.kind === "file"
         ? new OpenFile(path, handle)
         : new OpenDirectory(path, handle)
     );
@@ -353,7 +353,7 @@ export class OpenFiles {
   }
 
   async open(preOpen: OpenDirectory, path: string, openFlags?: OpenFlags) {
-    console.debug('[open]');
+    console.debug("[open]");
     return this._add(
       `${preOpen.path}/${path}`,
       await preOpen.getFileOrDir(path, FileOrDir.Any, openFlags)
@@ -361,8 +361,8 @@ export class OpenFiles {
   }
 
   get(fd: fd_t) {
-    console.debug('[get]');
-    let openFile = this._files.get(fd);
+    console.debug("[get]");
+    const openFile = this._files.get(fd);
     if (!openFile) {
       throw new SystemError(E.BADF);
     }
@@ -370,30 +370,30 @@ export class OpenFiles {
   }
 
   private _take(fd: fd_t) {
-    console.debug('[_take]');
-    let handle = this.get(fd);
+    console.debug("[_take]");
+    const handle = this.get(fd);
     this._files.delete(fd);
     return handle;
   }
 
   async renumber(from: fd_t, to: fd_t) {
-    console.debug('[renumber]');
+    console.debug("[renumber]");
     await this.close(to);
     this._files.set(to, this._take(from));
   }
 
   async close(fd: fd_t) {
-    console.debug('[close]');
+    console.debug("[close]");
     await this._take(fd).close();
   }
 
   // Translation of the algorithm from __wasilibc_find_relpath.
   findRelPath(path: string) {
-    console.debug('[findRelPath]');
+    console.debug("[findRelPath]");
     /// Are the `prefix_len` bytes pointed to by `prefix` a prefix of `path`?
     function prefixMatches(prefix: string, path: string) {
       // Allow an empty string as a prefix of any relative path.
-      if (path[0] != '/' && !prefix) {
+      if (path[0] != "/" && !prefix) {
         return true;
       }
 
@@ -404,13 +404,13 @@ export class OpenFiles {
 
       // Ignore trailing slashes in directory names.
       let i = prefix.length;
-      while (i > 0 && prefix[i - 1] == '/') {
+      while (i > 0 && prefix[i - 1] == "/") {
         --i;
       }
 
       // Match only complete path components.
-      let last = path[i];
-      return last === '/' || !last;
+      const last = path[i];
+      return last === "/" || !last;
     }
 
     // Search through the preopens table. Iterate in reverse so that more
@@ -418,15 +418,15 @@ export class OpenFiles {
     let matchLen = 0;
     let foundPre;
     for (let i = this._firstNonPreopenFd - 1; i >= FIRST_PREOPEN_FD; --i) {
-      let pre = this.get(i as fd_t) as OpenDirectory;
+      const pre = this.get(i as fd_t) as OpenDirectory;
       let prefix = pre.path;
 
-      if (path !== '.' && !path.startsWith('./')) {
+      if (path !== "." && !path.startsWith("./")) {
         // We're matching a relative path that doesn't start with "./" and
         // isn't ".".
-        if (prefix.startsWith('./')) {
+        if (prefix.startsWith("./")) {
           prefix = prefix.slice(2);
-        } else if (prefix === '.') {
+        } else if (prefix === ".") {
           prefix = prefix.slice(1);
         }
       }
@@ -453,14 +453,14 @@ export class OpenFiles {
     let computed = path.slice(matchLen);
 
     // Omit leading slashes in the relative path.
-    computed = computed.replace(/^\/+/, '');
+    computed = computed.replace(/^\/+/, "");
 
     // *at syscalls don't accept empty relative paths, so use "." instead.
-    computed = computed || '.';
+    computed = computed || ".";
 
     return {
       preOpen: foundPre,
-      relativePath: computed
+      relativePath: computed,
     };
   }
 }

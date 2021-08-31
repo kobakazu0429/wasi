@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'xterm/css/xterm.css';
+import "xterm/css/xterm.css";
 
-import { Terminal, IDisposable } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { WebLinksAddon } from 'xterm-addon-web-links';
-import { LocalEchoAddon } from '@kobakazu0429/xterm-local-echo';
-import Bindings, { OpenFlags, stringOut } from '../../src/bindings';
-import { FileOrDir, OpenFiles } from '../../src/fileSystem';
+import { Terminal, IDisposable } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
+import { WebLinksAddon } from "xterm-addon-web-links";
+import { LocalEchoAddon } from "@kobakazu0429/xterm-local-echo";
+import Bindings, { OpenFlags, stringOut } from "../../src/bindings";
+import { FileOrDir, OpenFiles } from "../../src/fileSystem";
 
 // Backports for new APIs to Chromium <=85.
 let hasSupport = true;
 try {
   navigator.storage.getDirectory ??= () =>
     FileSystemDirectoryHandle.getSystemDirectory({
-      type: 'sandbox'
+      type: "sandbox",
     });
   FileSystemDirectoryHandle.prototype.getDirectoryHandle ??=
     FileSystemDirectoryHandle.prototype.getDirectory;
@@ -39,13 +39,13 @@ try {
   };
   globalThis.showDirectoryPicker ??= () =>
     chooseFileSystemEntries({
-      type: 'open-directory'
+      type: "open-directory",
     });
-  if (!('kind' in FileSystemHandle.prototype)) {
-    Object.defineProperty(FileSystemHandle.prototype, 'kind', {
+  if (!("kind" in FileSystemHandle.prototype)) {
+    Object.defineProperty(FileSystemHandle.prototype, "kind", {
       get(this: FileSystemHandle): FileSystemHandleKind {
-        return this.isFile ? 'file' : 'directory';
-      }
+        return this.isFile ? "file" : "directory";
+      },
     });
   }
 } catch {
@@ -53,20 +53,20 @@ try {
 }
 
 (async () => {
-  let term = new Terminal();
+  const term = new Terminal();
 
-  let fitAddon = new FitAddon();
+  const fitAddon = new FitAddon();
   term.loadAddon(fitAddon);
 
-  let localEcho = new LocalEchoAddon();
-  let knownCommands = ['help', 'mount', 'cd'];
+  const localEcho = new LocalEchoAddon();
+  let knownCommands = ["help", "mount", "cd"];
   localEcho.addAutocompleteHandler((index: number): string[] =>
     index === 0 ? knownCommands : []
   );
   {
-    let storedHistory = localStorage.getItem('command-history');
+    const storedHistory = localStorage.getItem("command-history");
     if (storedHistory) {
-      localEcho.history['entries'] = storedHistory.split('\n');
+      localEcho.history["entries"] = storedHistory.split("\n");
       localEcho.history.rewind();
     }
   }
@@ -78,17 +78,17 @@ try {
   fitAddon.fit();
   onresize = () => fitAddon.fit();
 
-  const ANSI_GRAY = '\x1B[38;5;251m';
-  const ANSI_BLUE = '\x1B[34;1m';
-  const ANSI_RESET = '\x1B[0m';
+  const ANSI_GRAY = "\x1B[38;5;251m";
+  const ANSI_BLUE = "\x1B[34;1m";
+  const ANSI_RESET = "\x1B[0m";
 
   function writeIndented(s: string) {
     term.write(
       s
         .trimStart()
-        .replace(/\n +/g, '\r\n')
-        .replace(/https:\S+/g, ANSI_BLUE + '$&' + ANSI_RESET)
-        .replace(/^#.*$/gm, ANSI_GRAY + '$&' + ANSI_RESET)
+        .replace(/\n +/g, "\r\n")
+        .replace(/https:\S+/g, ANSI_BLUE + "$&" + ANSI_RESET)
+        .replace(/^#.*$/gm, ANSI_GRAY + "$&" + ANSI_RESET)
     );
   }
 
@@ -105,16 +105,16 @@ try {
     return;
   }
 
-  const module = WebAssembly.compileStreaming(fetch('./coreutils.async.wasm'));
+  const module = WebAssembly.compileStreaming(fetch("./coreutils.async.wasm"));
 
   // This is just for the autocomplete, so spawn the task and ignore any errors.
   (async () => {
-    let helpStr = '';
+    let helpStr = "";
 
     await new Bindings({
       openFiles: new OpenFiles({}),
-      args: ['--help'],
-      stdout: stringOut(chunk => (helpStr += chunk))
+      args: ["--help"],
+      stdout: stringOut((chunk) => (helpStr += chunk)),
     }).run(await module);
 
     knownCommands = knownCommands.concat(
@@ -146,19 +146,19 @@ try {
   const stdin = {
     async read() {
       let onData: IDisposable;
-      let line = '';
+      let line = "";
       try {
-        await new Promise<void>(resolve => {
-          onData = term.onData(s => {
+        await new Promise<void>((resolve) => {
+          onData = term.onData((s) => {
             // Ctrl+D
-            if (s === '\x04') {
-              term.writeln('^D');
+            if (s === "\x04") {
+              term.writeln("^D");
               return resolve();
             }
             // Enter
-            if (s === '\r') {
-              term.writeln('');
-              line += '\n';
+            if (s === "\r") {
+              term.writeln("");
+              line += "\n";
               return resolve();
             }
             // Ignore other functional keys
@@ -166,8 +166,8 @@ try {
               return;
             }
             // Backspace
-            if (s === '\x7F') {
-              term.write('\b \b');
+            if (s === "\x7F") {
+              term.write("\b \b");
               line = line.slice(0, -1);
               return;
             }
@@ -179,32 +179,33 @@ try {
         onData!.dispose();
       }
       return textEncoder.encode(line);
-    }
+    },
   };
 
   const stdout = {
     write(data: Uint8Array) {
       term.write(
-        textDecoder.decode(data, { stream: true }).replaceAll('\n', '\r\n')
+        textDecoder.decode(data, { stream: true }).replaceAll("\n", "\r\n")
       );
-    }
+    },
   };
 
   const cmdParser = /(?:'(.*?)'|"(.*?)"|(\S+))\s*/gsuy;
 
-  let preOpens: Record<string, FileSystemDirectoryHandle> = {};
-  preOpens['/sandbox'] = await navigator.storage.getDirectory();
+  const preOpens: Record<string, FileSystemDirectoryHandle> = {};
+  preOpens["/sandbox"] = await navigator.storage.getDirectory();
 
-  let pwd = '/sandbox';
+  let pwd = "/sandbox";
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
-    let line = (await localEcho.read(`${pwd}$ `)) as string;
+    const line = (await localEcho.read(`${pwd}$ `)) as string;
     localEcho.history.rewind();
     localStorage.setItem(
-      'command-history',
-      localEcho.history.entries.join('\n')
+      "command-history",
+      localEcho.history.entries.join("\n")
     );
-    let args = Array.from(
+    const args = Array.from(
       line.matchAll(cmdParser),
       ([, s1, s2, s3]) => s1 ?? s2 ?? s3
     );
@@ -213,33 +214,33 @@ try {
         continue;
       }
       switch (args[0]) {
-        case 'help':
-          args[0] = '--help';
+        case "help":
+          args[0] = "--help";
           break;
-        case 'mount': {
-          let dest = args[1];
-          if (!dest || dest === '--help' || !dest.startsWith('/')) {
+        case "mount": {
+          const dest = args[1];
+          if (!dest || dest === "--help" || !dest.startsWith("/")) {
             term.writeln(
               'Provide a desination mount point like "mount /mount/point" and choose a source in the dialogue.'
             );
             continue;
           }
-          let src = (preOpens[dest] = await showDirectoryPicker());
+          const src = (preOpens[dest] = await showDirectoryPicker());
           term.writeln(
             `Successfully mounted (...host path...)/${src.name} at ${dest}.`
           );
           continue;
         }
-        case 'cd': {
+        case "cd": {
           let dest = args[1];
           if (dest) {
             // Resolve against the current working dir.
             dest = new URL(dest, `file://${pwd}/`).pathname;
-            if (dest.endsWith('/')) {
-              dest = dest.slice(0, -1) || '/';
+            if (dest.endsWith("/")) {
+              dest = dest.slice(0, -1) || "/";
             }
-            let openFiles = new OpenFiles(preOpens);
-            let { preOpen, relativePath } = openFiles.findRelPath(dest);
+            const openFiles = new OpenFiles(preOpens);
+            const { preOpen, relativePath } = openFiles.findRelPath(dest);
             await preOpen.getFileOrDir(
               relativePath,
               FileOrDir.Dir,
@@ -248,59 +249,59 @@ try {
             // We got here without failing, set the new working dir.
             pwd = dest;
           } else {
-            term.writeln('Provide the directory argument.');
+            term.writeln("Provide the directory argument.");
           }
           continue;
         }
       }
-      let openFiles = new OpenFiles(preOpens);
+      const openFiles = new OpenFiles(preOpens);
       let redirectedStdout;
-      if (['>', '>>'].includes(args[args.length - 2])) {
+      if ([">", ">>"].includes(args[args.length - 2])) {
         let path = args.pop()!;
         // Resolve against the current working dir.
         path = new URL(path, `file://${pwd}/`).pathname;
-        let { preOpen, relativePath } = openFiles.findRelPath(path);
-        let handle = await preOpen.getFileOrDir(
+        const { preOpen, relativePath } = openFiles.findRelPath(path);
+        const handle = await preOpen.getFileOrDir(
           relativePath,
           FileOrDir.File,
           OpenFlags.Create
         );
-        if (args.pop() === '>') {
+        if (args.pop() === ">") {
           redirectedStdout = await handle.createWritable();
         } else {
           redirectedStdout = await handle.createWritable({
-            keepExistingData: true
+            keepExistingData: true,
           });
           redirectedStdout.seek((await handle.getFile()).size);
         }
       }
-      localEcho['detach']();
-      let abortController = new AbortController();
-      let ctrlCHandler = term.onData(s => {
-        if (s === '\x03') {
-          term.write('^C');
+      localEcho["detach"]();
+      const abortController = new AbortController();
+      const ctrlCHandler = term.onData((s) => {
+        if (s === "\x03") {
+          term.write("^C");
           abortController.abort();
         }
       });
       try {
-        let statusCode = await new Bindings({
+        const statusCode = await new Bindings({
           abortSignal: abortController.signal,
           openFiles,
           stdin,
           stdout: redirectedStdout ?? stdout,
           stderr: stdout,
-          args: ['$', ...args],
+          args: ["$", ...args],
           env: {
-            RUST_BACKTRACE: '1',
-            PWD: pwd
-          }
+            RUST_BACKTRACE: "1",
+            PWD: pwd,
+          },
         }).run(await module);
         if (statusCode !== 0) {
           term.writeln(`Exit code: ${statusCode}`);
         }
       } finally {
         ctrlCHandler.dispose();
-        localEcho['attach']();
+        localEcho["attach"]();
         if (redirectedStdout) {
           await redirectedStdout.close();
         }

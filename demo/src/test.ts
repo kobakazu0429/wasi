@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Bindings, { stringOut, bufferIn } from '../../src/bindings';
-import { OpenFiles } from '../../src/fileSystem';
+import Bindings, { stringOut, bufferIn } from "../../src/bindings";
+import { OpenFiles } from "../../src/fileSystem";
 
-const EOL = '\n';
+const EOL = "\n";
 
 type Test = Partial<{
   exitCode: number;
@@ -24,93 +24,93 @@ type Test = Partial<{
 }>;
 
 const tests: (Test & { test: string })[] = [
-  { test: 'cant_dotdot' },
-  { test: 'clock_getres' },
-  { test: 'exitcode', exitCode: 120 },
-  { test: 'fd_prestat_get_refresh' },
-  { test: 'freopen', stdout: `hello from input2.txt${EOL}` },
-  { test: 'getentropy' },
-  { test: 'getrusage' },
-  { test: 'gettimeofday' },
-  { test: 'link' },
-  { test: 'main_args' },
-  { test: 'notdir' },
-  { test: 'poll' },
-  { test: 'preopen_populates' },
-  { test: 'read_file', stdout: `hello from input.txt${EOL}` },
+  { test: "cant_dotdot" },
+  { test: "clock_getres" },
+  { test: "exitcode", exitCode: 120 },
+  { test: "fd_prestat_get_refresh" },
+  { test: "freopen", stdout: `hello from input2.txt${EOL}` },
+  { test: "getentropy" },
+  { test: "getrusage" },
+  { test: "gettimeofday" },
+  { test: "link" },
+  { test: "main_args" },
+  { test: "notdir" },
+  { test: "poll" },
+  { test: "preopen_populates" },
+  { test: "read_file", stdout: `hello from input.txt${EOL}` },
   {
-    test: 'read_file_twice',
-    stdout: `hello from input.txt${EOL}hello from input.txt${EOL}`
+    test: "read_file_twice",
+    stdout: `hello from input.txt${EOL}hello from input.txt${EOL}`,
   },
-  { test: 'stat' },
-  { test: 'write_file' },
-  { test: 'stdin', stdin: 'hello world', stdout: 'hello world' },
-  { test: 'stdout', stdout: '42' },
-  { test: 'stdout_with_n', stdout: `42${EOL}` },
-  { test: 'stdout_with_flush', stdout: `42` },
-  { test: 'stdout_with_setbuf', stdout: `42` }
+  { test: "stat" },
+  { test: "write_file" },
+  { test: "stdin", stdin: "hello world", stdout: "hello world" },
+  { test: "stdout", stdout: "42" },
+  { test: "stdout_with_n", stdout: `42${EOL}` },
+  { test: "stdout_with_flush", stdout: `42` },
+  { test: "stdout_with_setbuf", stdout: `42` },
 ];
 
-let table = document.getElementById('tests-table') as HTMLTableElement;
+const table = document.getElementById("tests-table") as HTMLTableElement;
 
-let preparedTests: (Test & {
+const preparedTests: (Test & {
   module: Promise<WebAssembly.Module>;
   resultCell: HTMLTableDataCellElement;
 })[] = tests.map(({ test, ...expect }) => {
-  let module = WebAssembly.compileStreaming(
+  const module = WebAssembly.compileStreaming(
     fetch(`tests/async-wasm/${test}.wasm`)
   );
-  let resultCell = Object.assign(document.createElement('td'), {
-    textContent: 'NOT RUN'
+  const resultCell = Object.assign(document.createElement("td"), {
+    textContent: "NOT RUN",
   });
-  let row = table.insertRow();
+  const row = table.insertRow();
   row.insertCell().textContent = test;
   row.appendChild(resultCell);
   return {
     ...expect,
     module,
-    resultCell
+    resultCell,
   };
 });
 
-let runBtn = document.getElementById('run-btn') as HTMLButtonElement;
+const runBtn = document.getElementById("run-btn") as HTMLButtonElement;
 
 const textEncoder = new TextEncoder();
 runBtn.onclick = async () => {
   runBtn.disabled = true;
   try {
-    let rootHandle = await showDirectoryPicker();
-    let [sandbox, tmp] = await Promise.all([
-      rootHandle.getDirectoryHandle('sandbox'),
-      rootHandle.getDirectoryHandle('tmp').then(async tmp => {
-        let promises = [];
-        for await (let name of tmp.keys()) {
+    const rootHandle = await showDirectoryPicker();
+    const [sandbox, tmp] = await Promise.all([
+      rootHandle.getDirectoryHandle("sandbox"),
+      rootHandle.getDirectoryHandle("tmp").then(async (tmp) => {
+        const promises = [];
+        for await (const name of tmp.keys()) {
           promises.push(tmp.removeEntry(name, { recursive: true }));
         }
         await Promise.all(promises);
         return tmp;
-      })
+      }),
     ]);
 
     await Promise.allSettled(
       preparedTests.map(
-        async ({ module, resultCell, stdin, stdout = '', exitCode = 0 }) => {
-          resultCell.textContent = 'Running... ';
-          let actualStdout = '';
-          let actualStderr = '';
+        async ({ module, resultCell, stdin, stdout = "", exitCode = 0 }) => {
+          resultCell.textContent = "Running... ";
+          let actualStdout = "";
+          let actualStderr = "";
           try {
-            let actualExitCode = await new Bindings({
+            const actualExitCode = await new Bindings({
               openFiles: new OpenFiles({
-                '/sandbox': sandbox,
-                '/tmp': tmp
+                "/sandbox": sandbox,
+                "/tmp": tmp,
               }),
               stdin: bufferIn(textEncoder.encode(stdin)),
-              stdout: stringOut(text => (actualStdout += text)),
-              stderr: stringOut(text => (actualStderr += text)),
-              args: ['foo', '-bar', '--baz=value'],
+              stdout: stringOut((text) => (actualStdout += text)),
+              stderr: stringOut((text) => (actualStderr += text)),
+              args: ["foo", "-bar", "--baz=value"],
               env: {
-                NODE_PLATFORM: 'win32'
-              }
+                NODE_PLATFORM: "win32",
+              },
             }).run(await module);
             if (actualExitCode !== exitCode) {
               throw new Error(
@@ -124,12 +124,12 @@ runBtn.onclick = async () => {
                 )}\nActual stdout: ${JSON.stringify(actualStdout)}`
               );
             }
-            if (actualStderr !== '') {
+            if (actualStderr !== "") {
               throw new Error(
                 `Unexpected stderr: ${JSON.stringify(actualStderr)}`
               );
             }
-            resultCell.textContent = 'OK';
+            resultCell.textContent = "OK";
           } catch (err: any) {
             console.error(err);
             let message;
