@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { OpenFiles, FileOrDir, FIRST_PREOPEN_FD } from './fileSystem.js';
+import { OpenFiles, FileOrDir, FIRST_PREOPEN_FD } from './fileSystem';
 // @ts-ignore
 import { instantiate } from '../node_modules/asyncify-wasm/dist/asyncify.mjs';
 import {
@@ -29,7 +29,7 @@ import {
   uint32_t,
   uint64_t,
   size_t
-} from './type-desc.js';
+} from './type-desc';
 
 export enum E {
   SUCCESS = 0,
@@ -262,7 +262,8 @@ export const lineOut = (writeLn: (chunk: string) => void): Out => {
   });
 };
 
-function unimplemented() {
+function unimplemented(msg?: string) {
+  console.error('[unimplemented] ', msg);
   throw new SystemError(E.NOSYS);
 }
 
@@ -312,7 +313,7 @@ export default class Bindings {
     stderr = lineOut(console.error),
     args = [],
     env = {},
-    abortSignal,
+    abortSignal
   }: {
     openFiles: OpenFiles;
     stdin?: In;
@@ -381,6 +382,7 @@ export default class Bindings {
   getWasiImports() {
     const bindings: Record<string, (...args: any[]) => void | Promise<void>> = {
       fd_prestat_get: (fd: fd_t, prestatPtr: ptr<prestat_t>) => {
+        console.debug('[fd_prestat_get]');
         prestat_t.set(this._getBuffer(), prestatPtr, {
           type: PreOpenType.Dir,
           nameLen: this._openFiles.getPreOpen(fd).path.length
@@ -391,6 +393,7 @@ export default class Bindings {
         pathPtr: ptr<string>,
         pathLen: number
       ) => {
+        console.debug('[fd_prestat_dir_name]');
         string.set(
           this._getBuffer(),
           pathPtr,
@@ -398,18 +401,31 @@ export default class Bindings {
           pathLen
         );
       },
-      environ_sizes_get: (countPtr: ptr<number>, sizePtr: ptr<number>) =>
-        this._env.sizes_get(this._getBuffer(), countPtr, sizePtr),
-      environ_get: (environPtr: ptr<Uint32Array>, environBufPtr: ptr<string>) =>
-        this._env.get(this._getBuffer(), environPtr, environBufPtr),
-      args_sizes_get: (argcPtr: ptr<number>, argvBufSizePtr: ptr<number>) =>
-        this._args.sizes_get(this._getBuffer(), argcPtr, argvBufSizePtr),
-      args_get: (argvPtr: ptr<Uint32Array>, argvBufPtr: ptr<string>) =>
-        this._args.get(this._getBuffer(), argvPtr, argvBufPtr),
+      environ_sizes_get: (countPtr: ptr<number>, sizePtr: ptr<number>) => {
+        console.debug('[environ_sizes_get]');
+        return this._env.sizes_get(this._getBuffer(), countPtr, sizePtr);
+      },
+      environ_get: (
+        environPtr: ptr<Uint32Array>,
+        environBufPtr: ptr<string>
+      ) => {
+        console.debug('[environ_get]');
+        return this._env.get(this._getBuffer(), environPtr, environBufPtr);
+      },
+      args_sizes_get: (argcPtr: ptr<number>, argvBufSizePtr: ptr<number>) => {
+        console.debug('[args_sizes_get]');
+        return this._args.sizes_get(this._getBuffer(), argcPtr, argvBufSizePtr);
+      },
+      args_get: (argvPtr: ptr<Uint32Array>, argvBufPtr: ptr<string>) => {
+        console.debug('[args_get]');
+        return this._args.get(this._getBuffer(), argvPtr, argvBufPtr);
+      },
       proc_exit: (code: number) => {
+        console.debug('[proc_exit]');
         throw new ExitStatus(code);
       },
       random_get: (bufPtr: ptr<Uint8Array>, bufLen: number) => {
+        console.debug('[random_get]');
         crypto.getRandomValues(
           new Uint8Array(this._getBuffer(), bufPtr, bufLen)
         );
@@ -425,6 +441,7 @@ export default class Bindings {
         fsFlags: FdFlags,
         fdPtr: ptr<fd_t>
       ) => {
+        console.debug('[path_open]');
         if (fsFlags & FdFlags.NonBlock) {
           console.warn(
             'Asked for non-blocking mode while opening the file, falling back to blocking one.'
@@ -432,7 +449,7 @@ export default class Bindings {
           fsFlags &= ~FdFlags.NonBlock;
         }
         if (fsFlags != 0) {
-          unimplemented();
+          unimplemented('path_open');
         }
         fd_t.set(
           this._getBuffer(),
@@ -444,14 +461,20 @@ export default class Bindings {
           )
         );
       },
-      fd_fdstat_set_flags: (fd: fd_t, flags: FdFlags) => unimplemented(),
-      fd_close: (fd: fd_t) => this._openFiles.close(fd),
+      fd_fdstat_set_flags: (fd: fd_t, flags: FdFlags) => {
+        return unimplemented('fd_fdstat_set_flags');
+      },
+      fd_close: (fd: fd_t) => {
+        console.debug('[fd_close]');
+        return this._openFiles.close(fd);
+      },
       fd_read: async (
         fd: fd_t,
         iovsPtr: ptr<iovec_t>,
         iovsLen: number,
         nreadPtr: ptr<number>
       ) => {
+        console.debug('[fd_read]');
         let input = fd === 0 ? this._stdIn : this._openFiles.get(fd).asFile();
         await this._forEachIoVec(iovsPtr, iovsLen, nreadPtr, async buf => {
           let chunk = await input.read(buf.length);
@@ -465,6 +488,7 @@ export default class Bindings {
         iovsLen: number,
         nwrittenPtr: ptr<number>
       ) => {
+        console.debug('[fd_wrtie]', fd, iovsPtr, iovsLen, nwrittenPtr);
         let out: Out;
         switch (fd) {
           case 1: {
@@ -486,6 +510,7 @@ export default class Bindings {
         });
       },
       fd_fdstat_get: async (fd: fd_t, fdstatPtr: ptr<fdstat_t>) => {
+        console.debug('[fd_fdstat_get]', fd, fdstatPtr);
         let filetype;
         if (fd < FIRST_PREOPEN_FD) {
           filetype = FileType.CharacterDevice;
@@ -505,15 +530,17 @@ export default class Bindings {
         dirFd: fd_t,
         pathPtr: ptr<string>,
         pathLen: number
-      ) =>
-        this._openFiles
+      ) => {
+        console.debug('[path_create_directory]');
+        return this._openFiles
           .getPreOpen(dirFd)
           .getFileOrDir(
             string.get(this._getBuffer(), pathPtr, pathLen),
             FileOrDir.Dir,
             OpenFlags.Create | OpenFlags.Directory | OpenFlags.Exclusive
           )
-          .then(() => {}),
+          .then(() => {});
+      },
       path_rename: async (
         oldDirFd: fd_t,
         oldPathPtr: ptr<string>,
@@ -521,15 +548,20 @@ export default class Bindings {
         newDirFd: fd_t,
         newPathPtr: ptr<string>,
         newPathLen: number
-      ) => unimplemented(),
+      ) => {
+        console.debug('[path_rename]');
+        return unimplemented('path_rename');
+      },
       path_remove_directory: (
         dirFd: fd_t,
         pathPtr: ptr<string>,
         pathLen: number
-      ) =>
+      ) => {
+        console.debug('[path_remove_directory]');
         this._openFiles
           .getPreOpen(dirFd)
-          .delete(string.get(this._getBuffer(), pathPtr, pathLen)),
+          .delete(string.get(this._getBuffer(), pathPtr, pathLen));
+      },
       fd_readdir: async (
         fd: fd_t,
         bufPtr: ptr<dirent_t>,
@@ -537,6 +569,7 @@ export default class Bindings {
         cookie: bigint,
         bufUsedPtr: ptr<number>
       ) => {
+        console.debug('[fd_readdir]');
         const initialBufPtr = bufPtr;
         let openDir = this._openFiles.get(fd).asDir();
         let pos = Number(cookie);
@@ -573,7 +606,7 @@ export default class Bindings {
         bufPtr: number,
         bufLen: number,
         bufUsedPtr: number
-      ) => unimplemented(),
+      ) => unimplemented('path_readlink'),
       path_filestat_get: async (
         dirFd: fd_t,
         flags: any,
@@ -581,6 +614,7 @@ export default class Bindings {
         pathLen: number,
         filestatPtr: ptr<filestat_t>
       ) => {
+        console.debug('[path_filestat_get]');
         let handle = await this._openFiles
           .getPreOpen(dirFd)
           .getFileOrDir(
@@ -598,6 +632,7 @@ export default class Bindings {
         whence: Whence,
         filesizePtr: ptr<bigint>
       ) => {
+        console.debug('[fd_seek]');
         let openFile = this._openFiles.get(fd).asFile();
         let base: number;
         switch (whence) {
@@ -615,6 +650,8 @@ export default class Bindings {
         uint64_t.set(this._getBuffer(), filesizePtr, BigInt(openFile.position));
       },
       fd_tell: (fd: fd_t, offsetPtr: ptr<bigint>) => {
+        console.debug('[fd_tell]');
+
         uint64_t.set(
           this._getBuffer(),
           offsetPtr,
@@ -622,6 +659,7 @@ export default class Bindings {
         );
       },
       fd_filestat_get: async (fd: fd_t, filestatPtr: ptr<filestat_t>) => {
+        console.debug('[fd_filestat_get]');
         let openFile = this._openFiles.get(fd);
         this._getFileStat(
           openFile.isFile ? await openFile.getFile() : undefined,
@@ -638,6 +676,7 @@ export default class Bindings {
         subscriptionsNum: number,
         eventsNumPtr: ptr<number>
       ) => {
+        console.debug('[poll_oneoff]');
         if (subscriptionsNum === 0) {
           throw new RangeError('Polling requires at least one subscription');
         }
@@ -657,9 +696,8 @@ export default class Bindings {
             this._getBuffer(),
             subscriptionPtr
           );
-          subscriptionPtr = (subscriptionPtr + subscription_t.size) as ptr<
-            subscription_t
-          >;
+          subscriptionPtr = (subscriptionPtr +
+            subscription_t.size) as ptr<subscription_t>;
           switch (union.tag) {
             case EventType.Clock: {
               let timeout = Number(union.data.timeout) / 1_000_000;
@@ -709,7 +747,7 @@ export default class Bindings {
         }
         size_t.set(this._getBuffer(), eventsNumPtr, eventsNum);
       },
-      path_link: (
+      path_link: async (
         oldDirFd: fd_t,
         oldFlags: number,
         oldPathPtr: ptr<string>,
@@ -717,19 +755,64 @@ export default class Bindings {
         newFd: fd_t,
         newPathPtr: ptr<string>,
         newPathLen: number
-      ) => unimplemented(),
-      fd_datasync: (fd: fd_t) => this._openFiles.get(fd).asFile().flush(),
+      ) => {
+        console.debug('[path_link]');
+        // console.debug(oldDirFd, oldFlags, oldPathPtr, oldPathLen);
+        // const oldHandlePromise = this._openFiles
+        //   .getPreOpen(oldDirFd)
+        //   .getFileOrDir(
+        //     string.get(this._getBuffer(), oldPathPtr, oldPathLen),
+        //     FileOrDir.File,
+        //     oldFlags
+        //   );
+        // console.log(this._openFiles.get(oldDirFd));
+
+        // const newHandlePromise = this._openFiles
+        //   .getPreOpen(newFd)
+        //   .getFileOrDir(
+        //     string.get(this._getBuffer(), newPathPtr, newPathLen),
+        //     FileOrDir.File,
+        //     OpenFlags.Create
+        //   );
+
+        // const [oldHandle, newHandle] = await Promise.all([
+        //   oldHandlePromise,
+        //   newHandlePromise
+        // ]);
+
+        // const oldFile =
+        //   oldHandle.kind === 'file' ? await oldHandle.getFile() : undefined;
+        // const newFile =
+        //   newHandle.kind === 'file' ? await newHandle.getFile() : undefined;
+
+        // console.log(oldFile, newFile);
+        // console.log(this._openFiles);
+
+        unimplemented('path_link');
+      },
+      fd_datasync: (fd: fd_t) => {
+        console.debug('[fd_datasync]');
+        return this._openFiles.get(fd).asFile().flush();
+      },
       fd_sync: async (fd: fd_t) => {
+        console.debug('[fd_sync]');
         let openFile = this._openFiles.get(fd);
         if (openFile.isFile) {
           await openFile.flush();
         }
       },
-      fd_filestat_set_size: async (fd: fd_t, newSize: bigint) =>
-        this._openFiles.get(fd).asFile().setSize(Number(newSize)),
-      fd_renumber: (from: fd_t, to: fd_t) => this._openFiles.renumber(from, to),
-      path_symlink: (oldPath: ptr<string>, fd: fd_t, newPath: ptr<string>) =>
-        unimplemented(),
+      fd_filestat_set_size: async (fd: fd_t, newSize: bigint) => {
+        console.debug('[fd_filestat_set_size]');
+        return this._openFiles.get(fd).asFile().setSize(Number(newSize));
+      },
+      fd_renumber: (from: fd_t, to: fd_t) => {
+        console.debug('[fd_renumber]');
+
+        return this._openFiles.renumber(from, to);
+      },
+      path_symlink: (oldPath: ptr<string>, fd: fd_t, newPath: ptr<string>) => {
+        unimplemented('path_symlink');
+      },
       clock_time_get: (
         id: ClockId,
         precision: bigint,
@@ -749,6 +832,7 @@ export default class Bindings {
 
     return new Proxy(bindings, {
       get: (target, name, receiver) => {
+        // console.log(target, name);
         let value = Reflect.get(target, name, receiver);
         if (typeof name !== 'string' || typeof value !== 'function') {
           return value;
@@ -758,7 +842,7 @@ export default class Bindings {
             await value(...args);
             this._checkAbort();
             return E.SUCCESS;
-          } catch (err) {
+          } catch (err: any) {
             return translateError(err);
           }
         };
@@ -776,7 +860,8 @@ export default class Bindings {
     try {
       await _start();
       return 0;
-    } catch (err) {
+    } catch (err: any) {
+      console.error(err);
       if (err instanceof ExitStatus) {
         return err.statusCode;
       }
