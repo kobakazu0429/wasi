@@ -22,11 +22,7 @@
   "homepage": "https://github.com/GoogleChromeLabs/wasi-fs-access#readme",
   "description": "",
   "dependencies": {
-    "@kobakazu0429/xterm-local-echo": "^0.0.2",
-    "asyncify-wasm": "^1.1.1",
-    "xterm": "^4.9.0",
-    "xterm-addon-fit": "^0.4.0",
-    "xterm-addon-web-links": "^0.4.0"
+    "asyncify-wasm": "^1.1.1"
   },
   "devDependencies": {
     "@kobakazu0429/eslint-config-typescript": "^2.1.3",
