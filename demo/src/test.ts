@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Bindings, { stringOut, bufferIn } from "../../src/bindings";
-import { OpenFiles } from "../../src/fileSystem";
+import { Bindings, OpenFiles, stringOut, bufferIn } from "../../src";
 
 const EOL = "\n";
 

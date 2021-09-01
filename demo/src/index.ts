@@ -18,8 +18,13 @@ import { Terminal, IDisposable } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
 import { LocalEchoAddon } from "@kobakazu0429/xterm-local-echo";
-import Bindings, { OpenFlags, stringOut } from "../../src/bindings";
-import { FileOrDir, OpenFiles } from "../../src/fileSystem";
+import {
+  Bindings,
+  OpenFlags,
+  stringOut,
+  FileOrDir,
+  OpenFiles,
+} from "../../src";
 
 // Backports for new APIs to Chromium <=85.
 let hasSupport = true;

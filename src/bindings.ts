@@ -294,7 +294,7 @@ class StringCollection {
   }
 }
 
-export default class Bindings {
+export class Bindings {
   constructor({
     openFiles,
     stdin = { read: () => new Uint8Array() },
@@ -337,11 +337,12 @@ export default class Bindings {
   private _abortSignal: AbortSignal | undefined;
 
   public async run(module: WebAssembly.Module): Promise<number> {
-    const {
-      exports: { _start, memory },
-    } = await instantiate(module, {
+    const { exports } = await instantiate(module, {
       wasi_snapshot_preview1: this.getWasiImports(),
     });
+    console.log(exports);
+
+    const { _start, memory } = exports;
     this.memory = memory;
     try {
       await _start();
