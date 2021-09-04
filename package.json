@@ -4,6 +4,7 @@
   "private": false,
   "scripts": {
     "lint": "npm run lint:eslint && npm run lint:prettier",
+    "test": "jest --silent=false --verbose false",
     "build": "tsc -p .",
     "watch": "tsc -p . -w",
     "lint:eslint": "eslint \"./{src,demo}/**/*.{ts,mjs}\" --fix",
@@ -35,8 +36,11 @@
   },
   "devDependencies": {
     "@kobakazu0429/eslint-config-typescript": "^2.1.3",
+    "@types/jest": "^27.0.1",
     "@types/wicg-file-system-access": "^2020.9.1",
     "eslint": "^7.32.0",
+    "jest": "^27.1.0",
+    "ts-jest": "^27.0.5",
     "typescript": "^4.0.3"
   }
 }
