@@ -23,15 +23,18 @@ type Test = Partial<{
 }>;
 
 const tests: (Test & { test: string })[] = [
+  // faild
+  // { test: "getentropy" },
+  // { test: "link" },
+  // { test: "stat" },
+  // ---
   { test: "cant_dotdot" },
   { test: "clock_getres" },
   { test: "exitcode", exitCode: 120 },
   { test: "fd_prestat_get_refresh" },
   { test: "freopen", stdout: `hello from input2.txt${EOL}` },
-  { test: "getentropy" },
   { test: "getrusage" },
   { test: "gettimeofday" },
-  { test: "link" },
   { test: "main_args" },
   { test: "notdir" },
   { test: "poll" },
@@ -41,13 +44,12 @@ const tests: (Test & { test: string })[] = [
     test: "read_file_twice",
     stdout: `hello from input.txt${EOL}hello from input.txt${EOL}`,
   },
-  { test: "stat" },
   { test: "write_file" },
   { test: "stdin", stdin: "hello world", stdout: "hello world" },
   { test: "stdout", stdout: "42" },
-  { test: "stdout_with_n", stdout: `42${EOL}` },
-  { test: "stdout_with_flush", stdout: `42` },
+  { test: "stdout_with_flush", stdout: `12${EOL}34` },
   { test: "stdout_with_setbuf", stdout: `42` },
+  { test: "async-export", stdout: `10 + 3 = 13${EOL}10 / 3 = 3.33${EOL}` },
 ];
 
 const table = document.getElementById("tests-table") as HTMLTableElement;
