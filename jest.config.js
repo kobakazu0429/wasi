@@ -10,5 +10,5 @@ export default /** @type {import("@jest/types").Config} */ ({
   transform: {
     "^.+\\.ts$": "ts-jest"
   },
-  setupFilesAfterEnv: ["./tests/setup.ts"]
+  setupFilesAfterEnv: ["./tests/setup.ts", "jest-extended"]
 })

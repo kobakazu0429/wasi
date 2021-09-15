@@ -356,6 +356,16 @@ export class Bindings {
     }
   }
 
+  public async exportFunction(
+    module: WebAssembly.Module
+  ): Promise<WebAssembly.Exports> {
+    const { exports } = await instantiate(module, {
+      wasi_snapshot_preview1: this.getWasiImports(),
+    });
+
+    return exports;
+  }
+
   private _checkAbort() {
     if (this._abortSignal?.aborted) {
       throw new SystemError(E.CANCELED);
