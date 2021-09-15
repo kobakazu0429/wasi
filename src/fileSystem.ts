@@ -318,6 +318,9 @@ export const enum FileOrDir {
   Any = 3, // File | Dir
 }
 
+// 0	標準入力 (stdin)
+// 1	標準出力 (stdout)
+// 2	標準エラー出力 (stderr)
 export const FIRST_PREOPEN_FD = 3 as fd_t;
 
 export class OpenFiles {
@@ -343,7 +346,7 @@ export class OpenFiles {
   }
 
   async open(preOpen: OpenDirectory, path: string, openFlags?: OpenFlags) {
-    console.debug("[open]");
+    console.debug("[open]", path);
     return this._add(
       `${preOpen.path}/${path}`,
       await preOpen.getFileOrDir(path, FileOrDir.Any, openFlags)

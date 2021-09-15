@@ -13,8 +13,7 @@
 // limitations under the License.
 
 import { OpenFiles, FileOrDir, FIRST_PREOPEN_FD } from "./fileSystem";
-// @ts-ignore
-import { instantiate } from "../node_modules/asyncify-wasm/dist/asyncify.mjs";
+import { instantiate } from "./asyncify";
 import {
   enumer,
   ptr,
@@ -340,12 +339,13 @@ export class Bindings {
     const { exports } = await instantiate(module, {
       wasi_snapshot_preview1: this.getWasiImports(),
     });
+
     console.log(exports);
 
     const { _start, memory } = exports;
-    this.memory = memory;
+    this.memory = memory as WebAssembly.Memory;
     try {
-      await _start();
+      await (_start as any)();
       return 0;
     } catch (err: any) {
       console.error(err);
@@ -403,6 +403,13 @@ export class Bindings {
     const bindings: Record<string, (...args: any[]) => void | Promise<void>> = {
       fd_prestat_get: (fd: fd_t, prestatPtr: ptr<prestat_t>) => {
         console.debug("[fd_prestat_get]");
+        console.log(
+          fd
+          // this._openFiles.getPreOpen(fd),
+          // this._openFiles.getPreOpen(fd).path,
+          // this._openFiles.getPreOpen(fd).path.length
+        );
+
         prestat_t.set(this._getBuffer(), prestatPtr, {
           type: PreOpenType.Dir,
           nameLen: this._openFiles.getPreOpen(fd).path.length,
@@ -446,7 +453,7 @@ export class Bindings {
       },
       random_get: (bufPtr: ptr<Uint8Array>, bufLen: number) => {
         console.debug("[random_get]");
-        crypto.getRandomValues(
+        globalThis.crypto.getRandomValues(
           new Uint8Array(this._getBuffer(), bufPtr, bufLen)
         );
       },
@@ -485,7 +492,7 @@ export class Bindings {
         return unimplemented("fd_fdstat_set_flags");
       },
       fd_close: (fd: fd_t) => {
-        console.debug("[fd_close]");
+        console.debug("[fd_close]", fd);
         return this._openFiles.close(fd);
       },
       fd_read: async (
@@ -494,7 +501,7 @@ export class Bindings {
         iovsLen: number,
         nreadPtr: ptr<number>
       ) => {
-        console.debug("[fd_read]");
+        console.debug("[fd_read]", fd);
         const input = fd === 0 ? this._stdIn : this._openFiles.get(fd).asFile();
         await this._forEachIoVec(iovsPtr, iovsLen, nreadPtr, async (buf) => {
           const chunk = await input.read(buf.length);
@@ -656,13 +663,16 @@ export class Bindings {
           filestatPtr
         );
       },
+      path_filestat_set_times: async () => {
+        unimplemented();
+      },
       fd_seek: async (
         fd: fd_t,
         offset: bigint,
         whence: Whence,
         filesizePtr: ptr<bigint>
       ) => {
-        console.debug("[fd_seek]");
+        console.debug("[fd_seek]", fd);
         const openFile = this._openFiles.get(fd).asFile();
         let base: number;
         switch (whence) {
@@ -733,7 +743,9 @@ export class Bindings {
               let timeout = Number(union.data.timeout) / 1_000_000;
               if (union.data.flags === SubclockFlags.Absolute) {
                 const origin =
-                  union.data.id === ClockId.Realtime ? Date : performance;
+                  union.data.id === ClockId.Realtime
+                    ? Date
+                    : globalThis.performance;
                 timeout -= origin.now();
               }
               // This is not completely correct, since setTimeout doesn't give the required precision for monotonic clock.
@@ -852,7 +864,7 @@ export class Bindings {
         _precision: bigint,
         resultPtr: ptr<bigint>
       ) => {
-        const origin = id === ClockId.Realtime ? Date : performance;
+        const origin = id === ClockId.Realtime ? Date : globalThis.performance;
         timestamp_t.set(
           this._getBuffer(),
           resultPtr,
@@ -914,7 +926,7 @@ function translateError(err: any): E {
     }
     return err.code;
   }
-  if (err instanceof DOMException) {
+  if (err instanceof Error) {
     let code;
     switch (err.name) {
       case "NotFoundError":
