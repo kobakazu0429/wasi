@@ -4,7 +4,7 @@ import { Bindings, stringOut, OpenFiles, bufferIn } from "../src";
 import {
   getOriginPrivateDirectory,
   node,
-} from "../../native-file-system-adapter-lite/src/index";
+} from "@kobakazu0429/native-file-system-adapter-lite";
 
 const EOL = "\n";
 
