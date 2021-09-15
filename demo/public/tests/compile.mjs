@@ -26,6 +26,9 @@ const WASM_OPT_PATH = `/usr/local/bin/wasm-opt`;
         const output = path.join(wasmPath, `${filename}.wasm`);
         const p = spawn(`${CLANG_PATH}/bin/clang`, [
           `--sysroot=${CLANG_PATH}/share/wasi-sysroot`,
+
+          // The file size is generally 1.3 to almost 2 times larger.
+          "-Wl,--export-all",
           input,
           `-o`,
           output,

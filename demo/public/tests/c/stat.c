@@ -12,6 +12,8 @@
 #define SIZE 500
 
 int main(void) {
+  setbuf(stdout, NULL);
+
   struct stat st;
   int fd;
   int ret;
