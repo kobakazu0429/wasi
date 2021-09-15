@@ -7,7 +7,7 @@ import { Bindings, stringOut, OpenFiles } from "../src";
 import {
   getOriginPrivateDirectory,
   node,
-} from "../../native-file-system-adapter-lite/src/index";
+} from "@kobakazu0429/native-file-system-adapter-lite";
 
 describe("export", () => {
   test("main", async () => {
@@ -28,7 +28,9 @@ describe("export", () => {
 
     const rootHandle = await getOriginPrivateDirectory(
       node,
-      "/Users/kazu/ghq/github.com/kobakazu0429/wasi-fs-access/demo/public/tests/fixtures/"
+      path.resolve(
+        path.join(__dirname, "..", "demo", "public", "tests", "fixtures")
+      )
     );
     const [sandbox, tmp] = await Promise.all([
       rootHandle.getDirectoryHandle("sandbox"),
@@ -65,11 +67,6 @@ describe("export", () => {
         )
       )
     ).then((buf) => WebAssembly.compile(buf));
-
-    const rootHandle = await getOriginPrivateDirectory(
-      node,
-      "/Users/kazu/ghq/github.com/kobakazu0429/wasi-fs-access/demo/public/tests/fixtures/"
-    );
 
     let stdout = "";
     const { sum, div } = (await new Bindings({

@@ -1,3 +1,4 @@
+import path from "path";
 import { readFile } from "fs/promises";
 import { Bindings, stringOut, OpenFiles, bufferIn } from "../src";
 import {
@@ -49,12 +50,24 @@ describe("all", () => {
   test.each(tests)(
     "$test",
     async ({ test, stdin, stdout = "", exitCode = 0 }) => {
-      const wasmPath = `/Users/kazu/ghq/github.com/kobakazu0429/wasi-fs-access/demo/public/tests/async-wasm/${test}.wasm`;
+      const wasmPath = path.resolve(
+        path.join(
+          __dirname,
+          "..",
+          "demo",
+          "public",
+          "tests",
+          "async-wasm",
+          `${test}.wasm`
+        )
+      );
       const module = readFile(wasmPath).then((buf) => WebAssembly.compile(buf));
 
       const rootHandle = await getOriginPrivateDirectory(
         node,
-        "/Users/kazu/ghq/github.com/kobakazu0429/wasi-fs-access/demo/public/tests/fixtures/"
+        path.resolve(
+          path.join(__dirname, "..", "demo", "public", "tests", "fixtures")
+        )
       );
       const [sandbox, tmp] = await Promise.all([
         rootHandle.getDirectoryHandle("sandbox"),

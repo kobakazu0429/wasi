@@ -582,12 +582,10 @@
     eslint-plugin-prettier "^3.1.4"
     prettier "^2.0.5"
 
-"@kobakazu0429/native-file-system-adapter-lite@../native-file-system-adapter-lite":
+"@kobakazu0429/native-file-system-adapter-lite@^0.0.1":
   version "0.0.1"
-
-"@kobakazu0429/native-file-system-adapter-lite@https://github.com/kobakazu0429/native-file-system-adapter-lite":
-  version "0.0.1"
-  resolved "https://github.com/kobakazu0429/native-file-system-adapter-lite#2d25d4767a023871edeae19d4f8fb1f5ed8746e1"
+  resolved "https://registry.yarnpkg.com/@kobakazu0429/native-file-system-adapter-lite/-/native-file-system-adapter-lite-0.0.1.tgz#de0c5316eef8e0d3e75d46cbf3424424a6341ee6"
+  integrity sha512-F6doi7IG9jZiX2lzPFDbm+3hwMC2XqIYu0I59MYC1Vy7RXP2jzupr1hJxIlBDD5ngRLXFchWrQzPPRQ2O0dYxg==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
