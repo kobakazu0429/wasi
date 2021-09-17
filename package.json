@@ -3,14 +3,19 @@
   "version": "0.0.1",
   "private": false,
   "type": "module",
-  "source": "./src/index.ts",
+  "source": "src/index.ts",
+  "exports": "./dist/index.js",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "test": "jest --silent=false --verbose false",
     "build": "tsc -p .",
-    "watch": "tsc -p . -w",
     "lint:eslint": "eslint \"./{src,demo}/**/*.{ts,mjs}\" --fix",
     "lint:prettier": "prettier \"./{src,demo}/**/*.{ts,mjs}\" --write"
   },
