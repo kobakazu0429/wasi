@@ -29,6 +29,7 @@ import {
   uint64_t,
   size_t,
 } from "./type-desc";
+import { MyFile } from "@kobakazu0429/native-file-system-adapter-lite";
 
 export enum E {
   SUCCESS = 0,
@@ -390,7 +391,10 @@ export class Bindings {
     return memory.buffer;
   }
 
-  private _getFileStat(file: File | undefined, filestatPtr: ptr<filestat_t>) {
+  private _getFileStat(
+    file: File | MyFile | undefined,
+    filestatPtr: ptr<filestat_t>
+  ) {
     let size = 0n;
     let time = 0n;
     if (file) {

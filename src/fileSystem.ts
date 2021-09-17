@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import type {
+  FileSystemDirectoryHandle,
+  FileSystemFileHandle,
+  FileSystemHandle,
+  FileSystemWritableFileStream,
+  MyFile,
+} from "@kobakazu0429/native-file-system-adapter-lite";
 import { fd_t, OpenFlags, SystemError, E } from "./bindings";
 
 export type Handle = FileSystemFileHandle | FileSystemDirectoryHandle;
@@ -193,10 +200,12 @@ class OpenDirectory {
       handle = await openWithCreate(false);
     }
     if (openFlags & OpenFlags.Truncate) {
-      if (handle.isDirectory) {
+      if ((handle as any).isDirectory || handle.kind === "directory") {
         throw new SystemError(E.ISDIR);
       }
-      const writable = await handle.createWritable({ keepExistingData: false });
+      const writable = await (handle as FileSystemFileHandle).createWritable({
+        keepExistingData: false,
+      });
       await writable.close();
     }
     return handle;
@@ -256,7 +265,7 @@ class OpenFile {
     console.debug("[getfile]");
     // TODO: do we really have to?
     await this.flush();
-    return this._handle.getFile();
+    return this._handle.getFile() as any as Promise<MyFile>;
   }
 
   async setSize(size: number) {
