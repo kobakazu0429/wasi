@@ -19,7 +19,9 @@ import type {
   FileSystemWritableFileStream,
   MyFile,
 } from "@kobakazu0429/native-file-system-adapter-lite";
-import { fd_t, OpenFlags, SystemError, E } from "./bindings";
+import { SystemError } from "./errors";
+import { OpenFlags, E } from "./constants";
+import type { fd_t } from "./constants";
 
 export type Handle = FileSystemFileHandle | FileSystemDirectoryHandle;
 

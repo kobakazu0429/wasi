@@ -21,7 +21,6 @@ import {
   struct,
   taggedUnion,
   TargetType,
-  TypeDesc,
   int8_t,
   uint8_t,
   uint16_t,
@@ -30,21 +29,8 @@ import {
   size_t,
 } from "./type-desc";
 import { MyFile } from "@kobakazu0429/native-file-system-adapter-lite";
-
-export enum E {
-  SUCCESS = 0,
-  ACCES = 2,
-  BADF = 8,
-  CANCELED = 11,
-  EXIST = 20,
-  INVAL = 28,
-  ISDIR = 31,
-  NOENT = 44,
-  NOSYS = 52,
-  NOTDIR = 54,
-  NOTEMPTY = 55,
-  NOTCAPABLE = 76,
-}
+import { FdFlags, OpenFlags, Whence, E, fd_t } from "./constants";
+import { SystemError } from "./errors";
 
 export class ExitStatus {
   constructor(public statusCode: number) {}
@@ -60,9 +46,6 @@ const prestat_t = struct({
   nameLen: size_t,
 });
 type prestat_t = TargetType<typeof prestat_t>;
-
-export type fd_t = number & { _name: "fd" };
-export const fd_t = uint32_t as TypeDesc<fd_t>;
 
 const iovec_t = struct({
   bufPtr: uint32_t,
@@ -193,33 +176,6 @@ const event_t = struct({
   fd_readwrite: event_fd_readwrite_t,
 });
 type event_t = TargetType<typeof event_t>;
-
-export class SystemError extends Error {
-  constructor(public readonly code: E, public readonly ignore = false) {
-    super(`E${E[code]}`);
-  }
-}
-
-const enum Whence {
-  Current,
-  End,
-  Set,
-}
-
-export const enum OpenFlags {
-  Create = 1 << 0,
-  Directory = 1 << 1,
-  Exclusive = 1 << 2,
-  Truncate = 1 << 3,
-}
-
-export const enum FdFlags {
-  Append = 1 << 0,
-  DSync = 1 << 1,
-  NonBlock = 1 << 2,
-  RSync = 1 << 3,
-  Sync = 1 << 4,
-}
 
 interface In {
   read(len: number): Uint8Array | Promise<Uint8Array>;
