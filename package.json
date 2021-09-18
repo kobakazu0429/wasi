@@ -41,8 +41,7 @@
   },
   "homepage": "https://github.com/kobakazu0429/wasi#readme",
   "dependencies": {
-    "@kobakazu0429/native-file-system-adapter-lite": "^0.0.3",
-    "asyncify-wasm": "^1.1.1"
+    "@kobakazu0429/native-file-system-adapter-lite": "^0.0.3"
   },
   "devDependencies": {
     "@kobakazu0429/eslint-config-typescript": "^2.1.3",
