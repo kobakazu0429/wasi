@@ -65,7 +65,7 @@ class Asyncify {
   }
 
   assertNoneState() {
-    let state = this.getState();
+    const state = this.getState();
     if (state !== State.None) {
       throw new Error(`Invalid async state ${state}, expected 0.`);
     }
@@ -78,7 +78,7 @@ class Asyncify {
         return this.value;
       }
       this.assertNoneState();
-      let value = fn(...args);
+      const value = fn(...args);
       if (!isPromise(value)) {
         return value;
       }
@@ -136,9 +136,9 @@ class Asyncify {
   }
 
   wrapExports(exports: any) {
-    let newExports = Object.create(null);
+    const newExports = Object.create(null);
 
-    for (let exportName in exports) {
+    for (const exportName in exports) {
       let value = exports[exportName];
       if (typeof value === "function" && !exportName.startsWith("asyncify_")) {
         value = this.wrapExportFn(value);
@@ -185,8 +185,8 @@ export async function instantiate(
   source: WebAssembly.Module,
   imports: WebAssembly.Imports
 ) {
-  let state = new Asyncify();
-  let result = await WebAssembly.instantiate(
+  const state = new Asyncify();
+  const result = await WebAssembly.instantiate(
     source,
     state.wrapImports(imports)
   );
@@ -198,8 +198,8 @@ export async function instantiateStreaming(
   source: Response | Promise<Response>,
   imports: WebAssembly.Imports
 ) {
-  let state = new Asyncify();
-  let result = await WebAssembly.instantiateStreaming(
+  const state = new Asyncify();
+  const result = await WebAssembly.instantiateStreaming(
     source,
     state.wrapImports(imports)
   );
