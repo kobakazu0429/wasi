@@ -177,11 +177,11 @@ const event_t = struct({
 });
 type event_t = TargetType<typeof event_t>;
 
-interface In {
+export interface In {
   read(len: number): Uint8Array | Promise<Uint8Array>;
 }
 
-interface Out {
+export interface Out {
   write(data: Uint8Array): void | Promise<void>;
 }
 
